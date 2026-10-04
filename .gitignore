@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Windows / Visual Studio
+.vs/
+bin/
+obj/
+*.user
+packages/
+*.msix
+*.appx
+*.exe
+*.pdb
+
+# Android
+*.apk
+*.aab
+.gradle/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Linux / Qt
+CMakeLists.txt.user
+*-build*/
+*.deb
+*.rpm
+*.tar.gz
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+
+# HarmonyOS
+oh_modules/
+.hvigor/
+*.har
+*.hap
+hvigor-cache/
+oh-package-lock.json5
+
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+
+# Editors
+*.swp
+*~
