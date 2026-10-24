@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using Windows.UI;
-using Windows.UI.Text;
+using Microsoft.UI.Text;
 
 namespace Chron.Views;
 

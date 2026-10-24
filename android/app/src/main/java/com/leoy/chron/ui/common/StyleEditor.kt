@@ -115,7 +115,7 @@ fun StyleEditor(
 private fun SliderRow(
     label: String,
     valueText: String?,
-    range: ClosedRange<Float>,
+    range: ClosedFloatingPointRange<Float>,
     value: Float,
     onValueChange: (Float) -> Unit
 ) {

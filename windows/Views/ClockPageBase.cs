@@ -119,8 +119,11 @@ public abstract class ClockPageBase : Grid
     {
         StyleLayer.Children.Clear();
         var visual = CreateStyleVisual(StyleIndex);
-        visual.HorizontalAlignment = HorizontalAlignment.Stretch;
-        visual.VerticalAlignment = VerticalAlignment.Stretch;
+        if (visual is FrameworkElement element)
+        {
+            element.HorizontalAlignment = HorizontalAlignment.Stretch;
+            element.VerticalAlignment = VerticalAlignment.Stretch;
+        }
         StyleLayer.Children.Add(visual);
     }
 

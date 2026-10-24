@@ -54,7 +54,7 @@ public sealed class PomodoroPage : Grid
         _label = Typo.Label("FOCUS", 13, Palette.InkDim);
         _label.Margin = new Thickness(0, 0, 0, 6);
 
-        _digits = Typo.Digits(Format(_remaining), 200, Palette.Amber, Windows.UI.Text.FontWeights.SemiBold);
+        _digits = Typo.Digits(Format(_remaining), 200, Palette.Amber, Microsoft.UI.Text.FontWeights.SemiBold);
         _digits.Tapped += (_, e) =>
         {
             if (_picking)

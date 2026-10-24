@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 using Windows.Foundation;
 using Windows.UI;
-using Windows.UI.Text;
+using Microsoft.UI.Text;
 
 namespace Chron.Views;
 
