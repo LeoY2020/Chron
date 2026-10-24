@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Microsoft.UI.Text;
+using Windows.UI.Text;
 
 namespace Chron.Services;
 
