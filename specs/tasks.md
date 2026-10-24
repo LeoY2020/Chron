@@ -20,12 +20,12 @@
 - 复核 artifact glob：`linux/build/chron_*`、`android/app/build/outputs/apk/debug/app-debug.apk`、`Chron-1.0.0-macos.dmg`。
 - 验证：文件存在且 YAML 结构完整（可 `python -c "import yaml"` 或人工复核）。
 
-## T5 提交与推送
+## [x] T5 提交与推送
 - `git add` 指定路径：`ios/ macos/ linux/ harmonyos/ .github/ specs/`；提交信息说明 iOS 27 适配、Linux/HarmonyOS 实现与 CI 增补。
 - `git push origin main`（使用用户提供的 token；被拦截时先 `AskUserQuestion` 确认）。
 - 验证：`git status` 干净、`git log -1` 显示新提交、远程 main 指向该提交。
 
-## T6 CI 结果跟进
+## [x] T6 CI 结果跟进
 - 轮询 GitHub Actions 五个 workflow 的最新运行状态（`gh run list` 或 API）。
 - 若失败：仅做最小修复（编译错误、路径、依赖包名），本地静态复核后提交并推送，直至通过或问题超出本机可修复范围。
 - 验证：各 workflow 结论为 success，产物 artifact 存在。
