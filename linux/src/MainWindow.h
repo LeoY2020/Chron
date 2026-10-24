@@ -48,7 +48,7 @@ private:
     StyleBar m_styleBar;
     QTimer *m_frame = nullptr;
     QTimer *m_longPress = nullptr;
-    QElapsedTimer m_clock;
+    QElapsedTimer m_frameClock;
 
     int m_page = 0;
     bool m_shrink = false;

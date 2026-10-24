@@ -76,6 +76,12 @@ public abstract class ClockPageBase : Grid
         Children.Add(Bar);
         Bar.Selected += OnBarSelected;
 
+        PointerPressed += HandlePointerPressed;
+        PointerMoved += HandlePointerMoved;
+        PointerReleased += HandlePointerReleased;
+        PointerCanceled += HandlePointerCanceled;
+        Tapped += HandleTapped;
+
         SizeChanged += (_, _) =>
         {
             _clip.Rect = new Rect(0, 0, ActualWidth, ActualHeight);
@@ -210,9 +216,9 @@ public abstract class ClockPageBase : Grid
         };
     }
 
-    protected override void OnPointerPressed(PointerRoutedEventArgs e)
+    private void HandlePointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        base.OnPointerPressed(e);
+
         var point = e.GetCurrentPoint(this);
         if (point.Properties.IsRightButtonPressed)
         {
@@ -224,9 +230,9 @@ public abstract class ClockPageBase : Grid
         StartHold();
     }
 
-    protected override void OnPointerMoved(PointerRoutedEventArgs e)
+    private void HandlePointerMoved(object sender, PointerRoutedEventArgs e)
     {
-        base.OnPointerMoved(e);
+
         if (_hold is null)
             return;
         var position = e.GetCurrentPoint(this).Position;
@@ -234,21 +240,21 @@ public abstract class ClockPageBase : Grid
             CancelHold();
     }
 
-    protected override void OnPointerReleased(PointerRoutedEventArgs e)
+    private void HandlePointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        base.OnPointerReleased(e);
+
         CancelHold();
     }
 
-    protected override void OnPointerCanceled(PointerRoutedEventArgs e)
+    private void HandlePointerCanceled(object sender, PointerRoutedEventArgs e)
     {
-        base.OnPointerCanceled(e);
+
         CancelHold();
     }
 
-    protected override void OnTapped(TappedRoutedEventArgs e)
+    private void HandleTapped(object sender, TappedRoutedEventArgs e)
     {
-        base.OnTapped(e);
+
         if (_suppressTap)
         {
             _suppressTap = false;

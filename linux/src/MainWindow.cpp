@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
     m_frame->setInterval(16);
     connect(m_frame, &QTimer::timeout, this, &MainWindow::onFrame);
     m_frame->start();
-    m_clock.start();
+    m_frameClock.start();
 
     m_longPress = new QTimer(this);
     m_longPress->setSingleShot(true);
@@ -148,7 +148,7 @@ void MainWindow::handleStyleBar(const QPointF &pos) {
 }
 
 void MainWindow::onFrame() {
-    double dt = m_clock.restart() / 1000.0;
+    double dt = m_frameClock.restart() / 1000.0;
     dt = qBound(0.0, dt, 0.05);
 
     for (int i = 0; i < 3; ++i) {
