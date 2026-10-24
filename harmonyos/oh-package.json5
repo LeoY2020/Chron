@@ -1,0 +1,11 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "chron",
+  "version": "1.0.0",
+  "description": "Chron - 极简、无打扰的时钟（HarmonyOS 原生 / ArkTS + ArkUI）",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {},
+  "devDependencies": {}
+}

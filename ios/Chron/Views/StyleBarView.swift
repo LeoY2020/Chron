@@ -39,8 +39,10 @@ struct StyleBarView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(.horizontal, 16)
     }
 }

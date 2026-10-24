@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "Chron 主模块" },
+    { "name": "EntryAbility_desc", "value": "Chron" },
+    { "name": "EntryAbility_label", "value": "Chron" }
+  ]
+}

@@ -1,0 +1,92 @@
+name: iOS Build & Test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (Xcode 27 / iOS 27 SDK 27.1)
+    # GitHub 官方 Xcode 27 专用镜像（预览版，自带 Xcode 27 与 iOS 27 SDK）
+    runs-on: xcode-27
+    env:
+      PROJECT: ios/Chron.xcodeproj
+      SCHEME: Chron
+      # 免签名构建（CI 不配置开发者证书）
+      XCARGS: >-
+        CODE_SIGNING_ALLOWED=NO
+        CODE_SIGN_IDENTITY=
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGN_ENTITLEMENTS=
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i ios || true
+
+      - name: Verify iOS 27 SDK
+        run: |
+          SDK_VERSION=$(xcodebuild -showsdks | grep -oE 'iphoneos[0-9.]+' | head -n 1 | sed 's/iphoneos//')
+          echo "iOS SDK: $SDK_VERSION"
+          case "$SDK_VERSION" in
+            27.*) echo "iOS 27 SDK 就绪" ;;
+            *) echo "未检测到 iOS 27 SDK（需要 Xcode 27.1）"; exit 1 ;;
+          esac
+
+      - name: Install xcbeautify (if missing)
+        run: which xcbeautify || brew install xcbeautify
+
+      - name: Resolve iOS Simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -oE "iPhone [0-9]+ (Pro Max|Pro)?" | head -n 1)
+          if [ -z "$DEVICE" ]; then
+            DEVICE=$(xcrun simctl list devices available | grep -oE "iPhone [0-9]+.*" | head -n 1 | cut -d '(' -f 1 | xargs)
+          fi
+          if [ -z "$DEVICE" ]; then
+            echo "未找到可用的 iPhone 模拟器"; exit 1
+          fi
+          echo "使用模拟器: $DEVICE"
+          echo "DESTINATION=platform=iOS Simulator,name=$DEVICE" >> "$GITHUB_ENV"
+
+      - name: Build (Debug)
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            $XCARGS \
+            build 2>&1 | xcbeautify --renderer github-actions
+
+      - name: Archive (Release, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -archivePath build/Chron.xcarchive \
+            $XCARGS \
+            archive 2>&1 | xcbeautify --renderer github-actions
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R "build/Chron.xcarchive/Products/Applications/Chron.app" build/Payload/
+          (cd build && zip -qry "Chron-1.0.0-unsigned.ipa" Payload)
+          ls -lh build/Chron-1.0.0-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chron-1.0.0-unsigned-ipa-${{ github.run_number }}
+          path: build/Chron-1.0.0-unsigned.ipa
+          retention-days: 30

@@ -1,0 +1,55 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build WinUI3 (dotnet, x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore windows/Chron.sln
+
+      - name: Build (Debug, x64)
+        run: dotnet build windows/Chron.sln -c Debug -p:Platform=x64 --no-restore
+
+      - name: Build (Release, x64)
+        run: dotnet build windows/Chron.sln -c Release -p:Platform=x64 --no-restore
+
+      - name: Stage runnable output
+        if: success()
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path windows/bin/x64/Release -Recurse -Filter Chron.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "Chron.exe not found in build output"; exit 1 }
+          $src = $exe.DirectoryName
+          $stage = "chron-windows-1.0.0"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item -Path "$src\*" -Destination $stage -Recurse -Force
+          Write-Output "Runnable entry: $((Get-ChildItem -Path $stage -Filter '*.exe' | Select-Object -First 1).FullName)"
+
+      - name: Upload build output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chron-1.0.0-windows-release
+          path: chron-windows-1.0.0
+          if-no-files-found: warn
+          retention-days: 30

@@ -111,7 +111,7 @@ struct RootView: View {
                 } else if signal > threshold, page > 0 {
                     target = page - 1
                 }
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.32)) {
                     page = target
                     dragOffset = 0
                 }
@@ -160,7 +160,7 @@ struct RootView: View {
             StyleBarView(chips: chips, selectedID: selectedID) { id in
                 selectStyle(id)
             } onEdit: {
-                withAnimation(.easeInOut(duration: 0.28)) { showEditor.toggle() }
+                withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.28)) { showEditor.toggle() }
             }
 
             if page == 0 && !countdown.isRunning {
@@ -195,7 +195,7 @@ struct RootView: View {
     }
 
     private func selectStyle(_ id: String) {
-        withAnimation(.easeInOut(duration: 0.25)) { showEditor = false }
+        withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.25)) { showEditor = false }
         if page == 0, let style = CountdownStyle(rawValue: id) {
             settings.countdownStyle = style
         } else if let style = ClockStyle(rawValue: id) {

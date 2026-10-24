@@ -1,0 +1,66 @@
+name: macOS Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build macOS (Xcode 27)
+    runs-on: xcode-27
+    env:
+      PROJECT: macos/Chron.xcodeproj
+      SCHEME: Chron
+      XCARGS: >-
+        CODE_SIGNING_ALLOWED=NO
+        CODE_SIGN_IDENTITY=
+        CODE_SIGNING_REQUIRED=NO
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i macosx || true
+
+      - name: Install xcbeautify (if missing)
+        run: which xcbeautify || brew install xcbeautify
+
+      - name: Build Release (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            -derivedDataPath build \
+            $XCARGS \
+            build 2>&1 | xcbeautify --renderer github-actions
+
+      - name: Package DMG (unsigned)
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Release/Chron.app"
+          test -d "$APP" || { echo "未找到构建产物：$APP"; exit 1; }
+          STAGE="dmg-stage"
+          DMG="Chron-1.0.0-macos.dmg"
+          rm -rf "$STAGE" "$DMG"
+          mkdir -p "$STAGE"
+          cp -R "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Chron" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          ls -lh "$DMG"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chron-1.0.0-macos-dmg
+          path: Chron-1.0.0-macos.dmg
+          retention-days: 30
