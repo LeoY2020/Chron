@@ -94,14 +94,14 @@ public sealed class PomodoroPage : Grid
             FontFamily = new FontFamily("Segoe Fluent Icons"),
             Foreground = new SolidColorBrush(Palette.InkDim),
         };
-        _playButton = MakeButton(_playIcon, ToggleRunning);
+        _playButton = MakeButton(_playIcon, ToggleRunning, "开始 / 暂停 (空格)");
         var resetButton = MakeButton(new FontIcon
         {
             Glyph = "\uE72C",
             FontSize = 16,
             FontFamily = new FontFamily("Segoe Fluent Icons"),
             Foreground = new SolidColorBrush(Palette.InkDim),
-        }, Reset);
+        }, Reset, "重置 (R)");
         _controls = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -316,6 +316,9 @@ public sealed class PomodoroPage : Grid
         Motion.Pulse(_playButton);
     }
 
+    /// <summary>键盘 R：回到当前阶段起点，不写入专注记录。</summary>
+    public void ResetPhase() => Reset();
+
     private void Reset()
     {
         _running = false;
@@ -386,8 +389,11 @@ public sealed class PomodoroPage : Grid
             : $"{value.Minutes:00}:{value.Seconds:00}";
     }
 
-    private static Button MakeButton(UIElement content, Action onClick)
+    private static Button MakeButton(UIElement content, Action onClick, string? tooltip = null)
     {
+        var rest = Color.FromArgb(16, 255, 255, 255);
+        var hover = Color.FromArgb(32, 255, 255, 255);
+        var press = Color.FromArgb(46, 255, 255, 255);
         var button = new Button
         {
             Content = content,
@@ -395,11 +401,25 @@ public sealed class PomodoroPage : Grid
             Height = 46,
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(23),
-            Background = new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)),
+            Background = new SolidColorBrush(rest),
             BorderThickness = new Thickness(0),
             ElementSoundMode = ElementSoundMode.Off,
         };
-        button.Click += (_, _) => onClick();
+
+        // 鼠标悬停与按下反馈。
+        button.PointerEntered += (_, _) => button.Background = new SolidColorBrush(hover);
+        button.PointerExited += (_, _) => button.Background = new SolidColorBrush(rest);
+        button.PointerPressed += (_, _) => button.Background = new SolidColorBrush(press);
+        button.PointerReleased += (_, _) => button.Background = new SolidColorBrush(hover);
+
+        if (tooltip is not null)
+            ToolTipService.SetToolTip(button, tooltip);
+
+        button.Click += (_, _) =>
+        {
+            button.Background = new SolidColorBrush(hover);
+            onClick();
+        };
         return button;
     }
 }

@@ -21,6 +21,7 @@ public sealed class StyleBar : Grid
     private readonly TranslateTransform _translation = new();
     private readonly List<Button> _buttons = new();
     private Tween? _tween;
+    private int _selected;
 
     public event Action<int>? Selected;
 
@@ -42,11 +43,25 @@ public sealed class StyleBar : Grid
         scrim.GradientStops.Add(new GradientStop { Color = Color.FromArgb(235, 0, 0, 0), Offset = 1 });
         Background = scrim;
 
-        Children.Add(_row);
+        // 玻璃质感面板：深色半透明 + 1px 细描边 + 24 圆角。
+        var card = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(232, 22, 23, 26)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(24),
+            Padding = new Thickness(10, 8, 10, 8),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = _row,
+        };
+        Children.Add(card);
     }
 
     public void SetItems(IReadOnlyList<string> names, int selected)
     {
+        _selected = selected;
         _row.Children.Clear();
         _buttons.Clear();
         for (var i = 0; i < names.Count; i++)
@@ -58,11 +73,24 @@ public sealed class StyleBar : Grid
                 Padding = new Thickness(16, 8, 16, 8),
                 CornerRadius = new CornerRadius(18),
                 BorderThickness = new Thickness(0),
-                Background = new SolidColorBrush(selected == i
-                    ? Color.FromArgb(38, 255, 255, 255)
-                    : Color.FromArgb(16, 255, 255, 255)),
                 ElementSoundMode = ElementSoundMode.Off,
             };
+
+            var hovering = false;
+            Paint(button, index, hovering, false);
+            button.PointerEntered += (_, _) =>
+            {
+                hovering = true;
+                Paint(button, index, hovering, false);
+            };
+            button.PointerExited += (_, _) =>
+            {
+                hovering = false;
+                Paint(button, index, hovering, false);
+            };
+            button.PointerPressed += (_, _) => Paint(button, index, hovering, true);
+            button.PointerReleased += (_, _) => Paint(button, index, hovering, false);
+
             button.Click += (_, _) =>
             {
                 Feedback.Light();
@@ -74,16 +102,23 @@ public sealed class StyleBar : Grid
         }
     }
 
+    /// <summary>按选中 / 悬停 / 按下三种状态刷新按钮底色与文字亮度。</summary>
+    private void Paint(Button button, int index, bool hovering, bool pressed)
+    {
+        var active = index == _selected;
+        var alpha = active
+            ? (hovering ? 56 : 38)
+            : (pressed ? 32 : hovering ? 26 : 16);
+        button.Background = new SolidColorBrush(Color.FromArgb((byte)alpha, 255, 255, 255));
+        if (button.Content is TextBlock text)
+            text.Foreground = new SolidColorBrush(active || hovering ? Palette.Ink : Palette.InkDim);
+    }
+
     public void SetSelected(int selected)
     {
+        _selected = selected;
         for (var i = 0; i < _buttons.Count; i++)
-        {
-            _buttons[i].Background = new SolidColorBrush(selected == i
-                ? Color.FromArgb(38, 255, 255, 255)
-                : Color.FromArgb(16, 255, 255, 255));
-            if (_buttons[i].Content is TextBlock tb)
-                tb.Foreground = new SolidColorBrush(selected == i ? Palette.Ink : Palette.InkDim);
-        }
+            Paint(_buttons[i], i, false, false);
     }
 
     public void Show()

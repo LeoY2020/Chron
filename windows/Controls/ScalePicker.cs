@@ -53,7 +53,20 @@ public sealed class ScalePicker : Grid
         ManipulationStarted += (_, _) => { _snap?.Stop(); _dragging = true; };
         ManipulationDelta += OnDelta;
         ManipulationCompleted += OnCompleted;
+        PointerWheelChanged += OnWheel;
         SizeChanged += (_, _) => Build();
+    }
+
+    /// <summary>滚轮微调：向上加一分钟、向下减一分钟，避免与翻页手势争抢。</summary>
+    private void OnWheel(object sender, PointerRoutedEventArgs e)
+    {
+        var delta = e.GetCurrentPoint(this).Properties.MouseWheelDelta;
+        if (delta == 0)
+            return;
+        e.Handled = true;
+        SetValue(Value + (delta > 0 ? 1 : -1), true);
+        ValueChanged?.Invoke(Value);
+        Feedback.Light();
     }
 
     public void SetValue(int value, bool animate)

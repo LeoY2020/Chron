@@ -54,7 +54,34 @@ public sealed class PagingView : Grid
         ManipulationStarted += OnManipulationStarted;
         ManipulationDelta += OnManipulationDelta;
         ManipulationCompleted += OnManipulationCompleted;
+        PointerWheelChanged += OnPointerWheel;
         SizeChanged += (_, _) => LayoutPages();
+    }
+
+    private long _lastWheelTick;
+
+    /// <summary>滚轮切页：空白区域的纵向/横向滚轮都能翻页；Shift+滚轮同样有效。</summary>
+    private void OnPointerWheel(object sender, PointerRoutedEventArgs e)
+    {
+        if (!IsPagingEnabled)
+            return;
+
+        var delta = e.GetCurrentPoint(this).Properties.MouseWheelDelta;
+        if (delta == 0)
+            return;
+
+        e.Handled = true;
+
+        // 一次手势只翻一页，避免高速滚轮连翻。
+        var now = Environment.TickCount64;
+        if (now - _lastWheelTick < 240)
+            return;
+        _lastWheelTick = now;
+
+        if (delta < 0)
+            Next();
+        else
+            Previous();
     }
 
     public void AddPage(FrameworkElement page)

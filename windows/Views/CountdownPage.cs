@@ -58,14 +58,14 @@ public sealed class CountdownPage : ClockPageBase
             FontFamily = new FontFamily("Segoe Fluent Icons"),
             Foreground = new SolidColorBrush(Palette.InkDim),
         };
-        _playButton = MakeButton(_playIcon, ToggleRunning);
+        _playButton = MakeButton(_playIcon, ToggleRunning, "开始 / 暂停 (空格)");
         _resetButton = MakeButton(new FontIcon
         {
             Glyph = "\uE72C",
             FontSize = 16,
             FontFamily = new FontFamily("Segoe Fluent Icons"),
             Foreground = new SolidColorBrush(Palette.InkDim),
-        }, Reset);
+        }, Reset, "重置 (R)");
 
         var controls = new StackPanel
         {
@@ -379,6 +379,9 @@ public sealed class CountdownPage : ClockPageBase
         Motion.Pulse(_playButton);
     }
 
+    /// <summary>键盘 R：回到设定时长。</summary>
+    public void ResetToDuration() => Reset();
+
     private void Reset()
     {
         _running = false;
@@ -465,7 +468,7 @@ public sealed class CountdownPage : ClockPageBase
             : $"{value.Minutes:00}:{value.Seconds:00}";
     }
 
-    private static Button MakeButton(UIElement content, Action onClick)
+    private static Button MakeButton(UIElement content, Action onClick, string? tooltip = null)
     {
         var button = new Button
         {
@@ -478,7 +481,24 @@ public sealed class CountdownPage : ClockPageBase
             BorderThickness = new Thickness(0),
             ElementSoundMode = ElementSoundMode.Off,
         };
-        button.Click += (_, _) => onClick();
+
+        // 鼠标悬停 / 按下反馈：浅色圆底的光晕随指针状态变化。
+        var rest = Color.FromArgb(14, 255, 255, 255);
+        var hover = Color.FromArgb(30, 255, 255, 255);
+        var press = Color.FromArgb(44, 255, 255, 255);
+        button.PointerEntered += (_, _) => button.Background = new SolidColorBrush(hover);
+        button.PointerExited += (_, _) => button.Background = new SolidColorBrush(rest);
+        button.PointerPressed += (_, _) => button.Background = new SolidColorBrush(press);
+        button.PointerReleased += (_, _) => button.Background = new SolidColorBrush(hover);
+
+        if (tooltip is not null)
+            ToolTipService.SetToolTip(button, tooltip);
+
+        button.Click += (_, _) =>
+        {
+            button.Background = new SolidColorBrush(hover);
+            onClick();
+        };
         return button;
     }
 }

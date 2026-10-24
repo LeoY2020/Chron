@@ -92,6 +92,9 @@ public sealed class EditorPanel : Grid
         }
     }
 
+    /// <summary>就地编辑器当前是否展开。</summary>
+    public bool IsOpen => Visibility == Visibility.Visible;
+
     public void Show()
     {
         Visibility = Visibility.Visible;

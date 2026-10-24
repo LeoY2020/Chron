@@ -1,5 +1,6 @@
 using Chron.Controls;
 using Chron.Services;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -24,7 +25,11 @@ public sealed partial class MainWindow : Window
         VerticalAlignment = VerticalAlignment.Bottom,
         Margin = new Thickness(0, 0, 0, 16),
     };
-    private readonly List<Ellipse> _dotShapes = new();
+    private readonly List<Grid> _dotHosts = new();
+    private readonly List<Border> _dotShapes = new();
+    private Tween? _dotTween;
+    private int _hoverDot = -1;
+    private bool _fullScreen;
     private readonly CountdownPage _countdown = new();
     private readonly PomodoroPage _pomodoro = new();
     private readonly ClockPage _clock = new();
@@ -44,8 +49,8 @@ public sealed partial class MainWindow : Window
         _pager.AddPage(_pomodoro);
         _pager.AddPage(_clock);
         _pager.IndexChanged += _ => UpdateDots();
-        _countdown.PagingLockChanged += locked => _pager.IsPagingEnabled = !locked;
-        _clock.PagingLockChanged += locked => _pager.IsPagingEnabled = !locked;
+        _countdown.PagingLockChanged += locked => SetLocked(locked);
+        _clock.PagingLockChanged += locked => SetLocked(locked);
 
         Host.Children.Add(_pager);
         BuildDots();
@@ -53,6 +58,16 @@ public sealed partial class MainWindow : Window
 
         SetupShortcuts();
         UpdateDots();
+    }
+
+    /// <summary>收缩态锁定翻页，同时淡出页面指示器。</summary>
+    private void SetLocked(bool locked)
+    {
+        _pager.IsPagingEnabled = !locked;
+        // 收缩态下指示器不再有意义，淡出避免与样式栏争夺注意力。
+        _dotTween?.Stop();
+        _dotTween = new Tween(DispatcherQueue, _dots.Opacity, locked ? 0 : 1, 220, Ease.Standard,
+            v => _dots.Opacity = v);
     }
 
     private void ConfigureWindow()
@@ -92,36 +107,89 @@ public sealed partial class MainWindow : Window
 
     private void SetupShortcuts()
     {
-        var previous = new KeyboardAccelerator { Key = VirtualKey.Left };
-        previous.Invoked += (_, e) =>
+        AddAccelerator(VirtualKey.Left, () =>
         {
             if (_pager.IsPagingEnabled)
-            {
                 _pager.Previous();
-                e.Handled = true;
-            }
-        };
+        });
 
-        var next = new KeyboardAccelerator { Key = VirtualKey.Right };
-        next.Invoked += (_, e) =>
+        AddAccelerator(VirtualKey.Right, () =>
         {
             if (_pager.IsPagingEnabled)
-            {
                 _pager.Next();
-                e.Handled = true;
-            }
-        };
+        });
 
-        var space = new KeyboardAccelerator { Key = VirtualKey.Space };
-        space.Invoked += (_, e) =>
+        AddAccelerator(VirtualKey.Space, PrimaryAction);
+        AddAccelerator(VirtualKey.R, ResetCurrentPage);
+
+        // 数字键直达三页（桌面端的“跳转”心智）。
+        AddAccelerator(VirtualKey.Number1, () => JumpTo(0));
+        AddAccelerator(VirtualKey.Number2, () => JumpTo(1));
+        AddAccelerator(VirtualKey.Number3, () => JumpTo(2));
+
+        AddAccelerator(VirtualKey.Escape, () =>
         {
-            PrimaryAction();
+            if (!CloseOverlay() && _fullScreen)
+                ToggleFullscreen();
+        });
+        AddAccelerator(VirtualKey.F11, ToggleFullscreen);
+    }
+
+    private void AddAccelerator(VirtualKey key, Action action)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key };
+        accelerator.Invoked += (_, e) =>
+        {
+            action();
             e.Handled = true;
         };
+        Root.KeyboardAccelerators.Add(accelerator);
+    }
 
-        Root.KeyboardAccelerators.Add(previous);
-        Root.KeyboardAccelerators.Add(next);
-        Root.KeyboardAccelerators.Add(space);
+    private void JumpTo(int index)
+    {
+        if (!_pager.IsPagingEnabled)
+            return;
+        _pager.GoTo(index);
+    }
+
+    private void ResetCurrentPage()
+    {
+        switch (_pager.CurrentIndex)
+        {
+            case 0:
+                _countdown.ResetToDuration();
+                break;
+            case 1:
+                _pomodoro.ResetPhase();
+                break;
+        }
+    }
+
+    /// <summary>Esc 分级退出：当前页先收起编辑器 / 收缩态。</summary>
+    private bool CloseOverlay()
+    {
+        return _pager.CurrentIndex switch
+        {
+            0 => _countdown.CloseOverlay(),
+            2 => _clock.CloseOverlay(),
+            _ => false,
+        };
+    }
+
+    private void ToggleFullscreen()
+    {
+        try
+        {
+            AppWindow.SetPresenter(_fullScreen
+                ? AppWindowPresenterKind.Overlapped
+                : AppWindowPresenterKind.FullScreen);
+            _fullScreen = !_fullScreen;
+        }
+        catch
+        {
+            // 部分系统版本不支持运行时切换 presenter
+        }
     }
 
     private void PrimaryAction()
@@ -143,18 +211,48 @@ public sealed partial class MainWindow : Window
     {
         for (var i = 0; i < 3; i++)
         {
-            var dot = new Ellipse { Width = 6, Height = 6 };
+            var index = i;
+            var dot = new Border
+            {
+                Width = 5,
+                Height = 5,
+                CornerRadius = new CornerRadius(2.5),
+                Background = new SolidColorBrush(Palette.InkFaint),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            // 22×22 热区：小圆点也能稳稳点中。
+            var host = new Grid { Width = 22, Height = 22, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
+            host.Children.Add(dot);
+            host.PointerEntered += (_, _) => SetHoverDot(index);
+            host.PointerExited += (_, _) => SetHoverDot(-1);
+            host.PointerPressed += (_, _) => JumpTo(index);
+
+            _dotHosts.Add(host);
             _dotShapes.Add(dot);
-            _dots.Children.Add(dot);
+            _dots.Children.Add(host);
         }
+    }
+
+    private void SetHoverDot(int index)
+    {
+        _hoverDot = index;
+        UpdateDots();
     }
 
     private void UpdateDots()
     {
         for (var i = 0; i < _dotShapes.Count; i++)
         {
-            _dotShapes[i].Fill = new SolidColorBrush(
-                i == _pager.CurrentIndex ? Palette.InkDim : Palette.InkFaint);
+            var dot = _dotShapes[i];
+            var active = i == _pager.CurrentIndex;
+            var hovered = i == _hoverDot;
+            dot.Width = active ? 14 : (hovered ? 7 : 5);
+            dot.Height = active ? 5 : (hovered ? 7 : 5);
+            dot.CornerRadius = new CornerRadius(dot.Height / 2);
+            dot.Background = new SolidColorBrush(active ? Palette.InkDim : Palette.InkFaint);
+            dot.Opacity = active || hovered ? 1 : 0.85;
         }
     }
 }

@@ -208,6 +208,22 @@ public abstract class ClockPageBase : Grid
 
     private void CloseEditor() => _editor?.Hide();
 
+    /// <summary>Esc 分级退出：先收起就地编辑器，再退出收缩态。返回是否消费了这次按键。</summary>
+    public bool CloseOverlay()
+    {
+        if (_editor is { IsOpen: true })
+        {
+            CloseEditor();
+            return true;
+        }
+        if (_shrunken)
+        {
+            ToggleShrink();
+            return true;
+        }
+        return false;
+    }
+
     protected void AttachDigitTap(TextBlock digits, Action onTap)
     {
         digits.Tapped += (_, e) =>
