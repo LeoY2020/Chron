@@ -71,7 +71,7 @@ struct CountdownView: View {
                     .shadow(color: Color.white.opacity(hoveredControl == "play" ? 0.08 : 0), radius: 12)
             }
             .buttonStyle(.plain)
-            .pointerHover("play")
+            .pointerHover { setHover("play", $0) }
 
             Button {
                 HapticsManager.shared.impact(.light)
@@ -85,16 +85,13 @@ struct CountdownView: View {
                     .shadow(color: Color.white.opacity(hoveredControl == "reset" ? 0.06 : 0), radius: 10)
             }
             .buttonStyle(.plain)
-            .pointerHover("reset")
+            .pointerHover { setHover("reset", $0) }
         }
         .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
     }
 
-    /// 悬停时切换手型光标并记录当前高亮控件。
-    private func pointerHover(_ id: String) -> some View {
-        onHover { inside in
-            hoveredControl = inside ? id : (hoveredControl == id ? nil : hoveredControl)
-            if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
-        }
+    /// 记录当前悬停的高亮控件（光标切换由 pointerHover 扩展完成）。
+    private func setHover(_ id: String, _ inside: Bool) {
+        hoveredControl = inside ? id : (hoveredControl == id ? nil : hoveredControl)
     }
 }

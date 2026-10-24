@@ -1,4 +1,15 @@
 import SwiftUI
+import AppKit
+
+extension View {
+    /// 桌面悬停：指针进入时切换手型光标，并把悬停状态回调给调用方。
+    func pointerHover(_ onChange: @escaping (Bool) -> Void) -> some View {
+        onHover { inside in
+            if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
+            onChange(inside)
+        }
+    }
+}
 
 /// 居中大号数字：圆体、等宽数字，按窗口短边自适应缩放，数字变化时轻微过渡。
 struct TimeDigitsView: View {

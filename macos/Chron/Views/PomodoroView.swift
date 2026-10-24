@@ -136,7 +136,7 @@ struct PomodoroView: View {
                         .background(Capsule().fill(Color.white.opacity(hoveredControl == "cancel" ? 0.14 : 0.08)))
                 }
                 .buttonStyle(.plain)
-                .pointerHover("cancel")
+                .pointerHover { setHover("cancel", $0) }
 
                 Button {
                     HapticsManager.shared.impact(.medium)
@@ -156,7 +156,7 @@ struct PomodoroView: View {
                         .overlay(Capsule().fill(Color.white.opacity(hoveredControl == "set" ? 0.12 : 0)))
                 }
                 .buttonStyle(.plain)
-                .pointerHover("set")
+                .pointerHover { setHover("set", $0) }
             }
         }
         .transition(.opacity)
@@ -177,7 +177,7 @@ struct PomodoroView: View {
                     .overlay(Circle().fill(Color.white.opacity(hoveredControl == "play" ? 0.12 : 0)))
             }
             .buttonStyle(.plain)
-            .pointerHover("play")
+            .pointerHover { setHover("play", $0) }
 
             Button {
                 HapticsManager.shared.impact(.light)
@@ -190,7 +190,7 @@ struct PomodoroView: View {
                     .background(Circle().fill(Color.white.opacity(hoveredControl == "abandon" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
-            .pointerHover("abandon")
+            .pointerHover { setHover("abandon", $0) }
 
             Button {
                 HapticsManager.shared.impact(.light)
@@ -203,7 +203,7 @@ struct PomodoroView: View {
                     .background(Circle().fill(Color.white.opacity(hoveredControl == "skip" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
-            .pointerHover("skip")
+            .pointerHover { setHover("skip", $0) }
         }
         .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
     }
@@ -227,7 +227,7 @@ struct PomodoroView: View {
                     .background(Circle().fill(Color.white.opacity(hoveredControl == "breakMinus" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
-            .pointerHover("breakMinus")
+            .pointerHover { setHover("breakMinus", $0) }
             Text("\(breakMinutes) min")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
@@ -246,18 +246,15 @@ struct PomodoroView: View {
                     .background(Circle().fill(Color.white.opacity(hoveredControl == "breakPlus" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
-            .pointerHover("breakPlus")
+            .pointerHover { setHover("breakPlus", $0) }
         }
         .padding(.horizontal, 4)
         .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
     }
 
-    /// 悬停时切换手型光标并记录当前高亮控件。
-    private func pointerHover(_ id: String) -> some View {
-        onHover { inside in
-            hoveredControl = inside ? id : (hoveredControl == id ? nil : hoveredControl)
-            if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
-        }
+    /// 记录当前悬停的高亮控件（光标切换由 pointerHover 扩展完成）。
+    private func setHover(_ id: String, _ inside: Bool) {
+        hoveredControl = inside ? id : (hoveredControl == id ? nil : hoveredControl)
     }
 
     private var pullGesture: some Gesture {
