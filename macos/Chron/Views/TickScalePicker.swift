@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// 番茄钟时长刻度尺：无数字刻度，上方倒三角指针，横向拖动实时改时长，
 /// 每经过一格触发一次轻反馈（不在滚动过程中连续振动）。
@@ -8,6 +9,7 @@ struct TickScalePicker: View {
     let accent: Color
 
     @State private var dragStartMinutes: Int?
+    @State private var wheel = WheelHoverAdjuster()
 
     private let pointsPerMinute: CGFloat = 12
     private let majorEvery = 5
@@ -62,5 +64,68 @@ struct TickScalePicker: View {
                 }
                 .onEnded { _ in dragStartMinutes = nil }
         )
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(_):
+                wheel.isHovering = true
+            case .ended:
+                wheel.isHovering = false
+            }
+        }
+        .onAppear {
+            // 只捕获 Binding 与常量范围，避免闭包反向持有视图。
+            let binding = $minutes
+            let limits = range
+            wheel.onStep = { step in
+                let current = binding.wrappedValue
+                let newValue = min(limits.upperBound, max(limits.lowerBound, current + step))
+                guard newValue != current else { return }
+                binding.wrappedValue = newValue
+                HapticsManager.shared.impact(.light)
+            }
+            wheel.start()
+        }
+        .onDisappear {
+            wheel.onStep = nil
+            wheel.stop()
+        }
+    }
+}
+
+/// 悬停时用滚轮微调；只在指针位于刻度尺内时吞掉纵向滚动，避免干扰横向分页。
+private final class WheelHoverAdjuster: NSObject {
+    var isHovering = false
+    var onStep: ((Int) -> Void)?
+
+    private var monitor: Any?
+    private var accum: CGFloat = 0
+
+    func start() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self, self.isHovering else { return event }
+            let dx = event.scrollingDeltaX
+            let dy = event.scrollingDeltaY
+            guard abs(dy) > abs(dx), abs(dy) > 0.01 else { return event }
+            // 触控板按点数、普通滚轮按行数换算，保证一格≈一分钟的微调手感。
+            let unit: CGFloat = event.hasPreciseScrollingDeltas ? 18 : 1
+            self.accum += dy
+            while self.accum >= unit {
+                self.accum -= unit
+                self.onStep?(1)
+            }
+            while self.accum <= -unit {
+                self.accum += unit
+                self.onStep?(-1)
+            }
+            return nil
+        }
+    }
+
+    func stop() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        accum = 0
+        isHovering = false
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// 番茄钟页：暖橙调，下拉展开专注摘要，点击时间进入刻度尺改时长。
 struct PomodoroView: View {
@@ -11,6 +12,7 @@ struct PomodoroView: View {
     @State private var breakMinutes = 5
     @State private var summaryExpanded = false
     @State private var pullProgress: CGFloat = 0
+    @State private var hoveredControl: String?
 
     private var accent: Color {
         model.phase == .focus ? Color(hex: "FF9F45") : Color(hex: "46C7B8")
@@ -89,7 +91,7 @@ struct PomodoroView: View {
         Button {
             guard !model.isRunning else { return }
             HapticsManager.shared.impact(.light)
-            withAnimation(.easeInOut(duration: 0.3)) { editingTime = true }
+            withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.3)) { editingTime = true }
         } label: {
             VStack(spacing: 8) {
                 Text(TimeFormat.duration(model.remaining))
@@ -109,6 +111,10 @@ struct PomodoroView: View {
         }
         .buttonStyle(.plain)
         .disabled(model.isRunning)
+        .onHover { inside in
+            // 运行中不可点击，不显示手型光标。
+            if inside && !model.isRunning { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
+        }
     }
 
     private var editorBlock: some View {
@@ -120,16 +126,17 @@ struct PomodoroView: View {
 
             HStack(spacing: 14) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) { editingTime = false }
+                    withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.3)) { editingTime = false }
                 } label: {
                     Text("Cancel")
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.7))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Capsule().fill(Color.white.opacity(0.08)))
+                        .background(Capsule().fill(Color.white.opacity(hoveredControl == "cancel" ? 0.14 : 0.08)))
                 }
                 .buttonStyle(.plain)
+                .pointerHover("cancel")
 
                 Button {
                     HapticsManager.shared.impact(.medium)
@@ -138,7 +145,7 @@ struct PomodoroView: View {
                     model.setDurations(focus: seconds, breakDuration: breakSeconds)
                     settings.pomodoroFocus = seconds
                     settings.pomodoroBreak = breakSeconds
-                    withAnimation(.easeInOut(duration: 0.25)) { editingTime = false }
+                    withAnimation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.3)) { editingTime = false }
                 } label: {
                     Text("Set \(pickingMinutes) min")
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -146,11 +153,14 @@ struct PomodoroView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(Capsule().fill(accent))
+                        .overlay(Capsule().fill(Color.white.opacity(hoveredControl == "set" ? 0.12 : 0)))
                 }
                 .buttonStyle(.plain)
+                .pointerHover("set")
             }
         }
         .transition(.opacity)
+        .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
     }
 
     private var controls: some View {
@@ -164,8 +174,10 @@ struct PomodoroView: View {
                     .foregroundStyle(.black)
                     .frame(width: 58, height: 58)
                     .background(Circle().fill(accent))
+                    .overlay(Circle().fill(Color.white.opacity(hoveredControl == "play" ? 0.12 : 0)))
             }
             .buttonStyle(.plain)
+            .pointerHover("play")
 
             Button {
                 HapticsManager.shared.impact(.light)
@@ -175,9 +187,10 @@ struct PomodoroView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(width: 46, height: 46)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(Circle().fill(Color.white.opacity(hoveredControl == "abandon" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
+            .pointerHover("abandon")
 
             Button {
                 HapticsManager.shared.impact(.light)
@@ -187,10 +200,12 @@ struct PomodoroView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(width: 46, height: 46)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(Circle().fill(Color.white.opacity(hoveredControl == "skip" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
+            .pointerHover("skip")
         }
+        .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
     }
 
     private var breakRow: some View {
@@ -209,9 +224,10 @@ struct PomodoroView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(Circle().fill(Color.white.opacity(hoveredControl == "breakMinus" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
+            .pointerHover("breakMinus")
             Text("\(breakMinutes) min")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
@@ -227,11 +243,21 @@ struct PomodoroView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(Circle().fill(Color.white.opacity(hoveredControl == "breakPlus" ? 0.14 : 0.08)))
             }
             .buttonStyle(.plain)
+            .pointerHover("breakPlus")
         }
         .padding(.horizontal, 4)
+        .animation(.timingCurve(0.4, 0, 0.2, 1, duration: 0.18), value: hoveredControl)
+    }
+
+    /// 悬停时切换手型光标并记录当前高亮控件。
+    private func pointerHover(_ id: String) -> some View {
+        onHover { inside in
+            hoveredControl = inside ? id : (hoveredControl == id ? nil : hoveredControl)
+            if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
+        }
     }
 
     private var pullGesture: some Gesture {
